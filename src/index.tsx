@@ -1,29 +1,30 @@
+import { format } from "date-fns";
 import $ from "jquery";
 import * as html from "./html";
-import "./index.css"
+import "./index.css";
 
-const Child: html.FunctionComponent = (props, children, { append, text }) => {
-  const replace =     <div>REPLACE THIS</div>;
-  return (
-    <span>
-      {replace}
-      <button onClick={() => text("SOME TEXAT")}>DASD</button>
-      <button onClick={() => append(<div>APPEND</div>)}>REMOVE</button>HELLO
-      WORLD!
-    </span>
+const Clock: html.FunctionComponent = (props, children, { cleanup, remove }) => {
+  const element = <span>{format(Date.now(), "dd-MM-yy HH:mm:ss")}</span>;
+
+  const interval = setInterval(
+    () => element.text(format(Date.now(), "dd-MM-yy HH:mm:ss")),
+    1000
   );
+
+  cleanup(() => { clearInterval(interval) });
+
+  setTimeout(remove, 3000);
+
+  return element;
 };
 
-const elem = (
-  <div>
-    <Child />
-    AGAIN
-  </div>
+$("body").append(
+  (
+    <div>
+      <Clock />
+    </div>
+  ).render()
 );
-
-console.log(elem, elem.render());
-
-$("body").append(elem.render());
 
 // console.log(elem);
 

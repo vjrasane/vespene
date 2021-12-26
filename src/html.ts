@@ -6,6 +6,7 @@ type Hooks = {
   append: (elem: JSX.Element) => void;
   replace: (elem: JSX.Element) => void;
   text: (str?: string | number | boolean) => string | undefined;
+  cleanup: (handler: () => void) => void;
 };
 
 export type FunctionComponent<P extends object = {}> = (
@@ -16,14 +17,25 @@ export type FunctionComponent<P extends object = {}> = (
 
 type HTMLElementTag = keyof HTMLElementTagNameMap;
 
+type Event = "create" | "remove";
+
 export const createElement = <P extends object>(
   component: FunctionComponent | HTMLElementTag,
   props: P,
   ...children: Array<JSX.Element | string>
 ): JSX.Element => {
   let element: JQuery<HTMLElement> | undefined;
+  const listeners: Record<Event, Array<() => void>> = {
+    create: [],
+    remove: [],
+  };
+
+  const cleanup = (handler: () => void): void => {
+    listeners.remove.push(handler);
+  };
 
   const remove = (): void => {
+    listeners.remove.forEach((handler) => handler());
     element?.remove();
     element = undefined;
   };
@@ -48,6 +60,7 @@ export const createElement = <P extends object>(
     replace,
     append,
     text,
+    cleanup,
   };
 
   const render = (): JQuery<HTMLElement> => {
