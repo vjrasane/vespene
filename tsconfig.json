@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react",
+    "jsxFactory": "html.createElement",
+    "moduleResolution": "node",
+    "target": "es2017",
+    "isolatedModules": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "typeRoots": ["node_modules/@types", "src"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules/*", "public/*"]
+}
