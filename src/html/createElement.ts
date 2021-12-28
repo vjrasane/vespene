@@ -1,4 +1,11 @@
-import { entries, isFunction, isString, partition } from "lodash/fp";
+import {
+  compact,
+  entries,
+  flatten,
+  isFunction,
+  isString,
+  partition,
+} from "lodash/fp";
 import $ from "../jquery";
 
 type HTMLElementTag = keyof HTMLElementTagNameMap;
@@ -13,16 +20,15 @@ type Hooks = {
   on: (event: string, handler: () => void) => void;
 };
 
-export type FunctionComponent<P extends object = {}> = (
-  props: P,
-  children: Array<JQuery<HTMLElement> | string>,
-  hooks: Hooks
-) => JSX.Element;
+export type FunctionComponent<
+  P extends object = {},
+  C extends Vespene.Node = Vespene.Node
+> = (props: P, children: Array<C>, hooks: Hooks) => JSX.Element | null;
 
-export const createElement = <P extends object>(
-  component: FunctionComponent | HTMLElementTag,
+export const createElement = <P extends object, C extends Vespene.Node>(
+  component: FunctionComponent<P, C> | HTMLElementTag,
   props: P,
-  ...children: Array<JSX.Element | string>
+  ...children: Array<C | Array<C>>
 ): JSX.Element => {
   let element: JQuery<HTMLElement> | undefined;
   const listeners: Record<string, Array<() => void>> = {};
@@ -49,15 +55,20 @@ export const createElement = <P extends object>(
   };
 
   const replace = (elem: JSX.Element): void => {
+    if (!elem.element) {
+      return remove();
+    }
     element?.replaceWith(elem.element);
     element = elem.element;
   };
 
   const append = (elem: JSX.Element): void => {
+    if (!elem.element) return;
     element?.append(elem.element);
   };
 
   const appendTo = (elem: JSX.Element): void => {
+    if (!elem.element) return;
     element?.appendTo(elem.element);
   };
 
@@ -75,16 +86,22 @@ export const createElement = <P extends object>(
     cleanup,
     on,
   };
-
-  const renderedChildren: Array<JQuery<HTMLElement> | string> = children.map(
-    (child) => (isString(child) ? child : child.element)
-  );
+  const flattenedChildren = flatten(children);
   if (isFunction(component)) {
-    element = component(props, renderedChildren, hooks).element;
+    element = component(props, flattenedChildren, hooks)?.element;
   } else {
+    const renderedChildren: Array<JQuery<HTMLElement> | string> = compact(
+      flattenedChildren.map((child) =>
+        isString(child) ? child : child?.element
+      )
+    );
+
+    console.log("REND", children, renderedChildren);
     element = $(`<${component}></${component}>`);
     element.append(...renderedChildren);
   }
+
+  console.log("ELEM", element);
 
   const [attributes, handlers] = partition(
     ([property]) => !property.startsWith("on"),
@@ -110,6 +127,7 @@ export const createElement = <P extends object>(
 
   return {
     element,
+    props,
     remove,
     append,
     appendTo,

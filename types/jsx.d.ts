@@ -1,6 +1,7 @@
-namespace JSX {
-  export interface Element {
-    element: JQuery<HTMLElement>;
+namespace Vespene {
+  export interface Element<P extends object = {}> {
+    element: JQuery<HTMLElement> | undefined;
+    props?: P;
     remove: () => void;
     append: (elem: JSX.Element) => void;
     appendTo: (elem: JSX.Element) => void;
@@ -9,6 +10,12 @@ namespace JSX {
     cleanup: (handler: () => void) => void;
     on: (event: string, handler: () => void) => void;
   }
+
+  export type Node = Element | string | null;
+}
+
+namespace JSX {
+  export type Element = Vespene.Element;
 
   type CommonProps = {
     id?: string;
