@@ -14,7 +14,7 @@ type Hooks = {
   remove: () => void;
   append: (elem: JSX.Element) => void;
   appendTo: (elem: JSX.Element) => void;
-  replace: (elem: JSX.Element) => void;
+  replace: (elem: Vespene.Element) => void;
   text: (str?: string | number | boolean) => string | undefined;
   cleanup: (handler: () => void) => void;
   on: (event: string, handler: () => void) => void;
@@ -31,7 +31,7 @@ export const createElement = <P extends object, C extends Vespene.Node>(
   ...children: Array<C | Array<C>>
 ): JSX.Element => {
   let element: JQuery<HTMLElement> | undefined;
-  const listeners: Record<string, Array<() => void>> = {};
+  let listeners: Record<string, Array<() => void>> = {};
 
   const bindEventHandlers = (event: string, handlers: Array<() => void>) => {
     element?.on(event, () => handlers.forEach((handler) => handler()));
@@ -54,22 +54,23 @@ export const createElement = <P extends object, C extends Vespene.Node>(
     element = undefined;
   };
 
-  const replace = (elem: JSX.Element): void => {
-    if (!elem.element) {
-      return remove();
-    }
-    element?.replaceWith(elem.element);
-    element = elem.element;
+  const replace = (replacer?: Vespene.Element): void => {
+    const rendered = replacer?.render();
+    if (!rendered) return remove();
+    element?.replaceWith(rendered);
+    element = rendered;
   };
 
-  const append = (elem: JSX.Element): void => {
-    if (!elem.element) return;
-    element?.append(elem.element);
+  const append = (appended?: Vespene.Element): void => {
+    const rendered = appended?.render();
+    if (!rendered) return;
+    element?.append(rendered);
   };
 
-  const appendTo = (elem: JSX.Element): void => {
-    if (!elem.element) return;
-    element?.appendTo(elem.element);
+  const appendTo = (appended: Vespene.Element): void => {
+    const rendered = appended?.render();
+    if (!rendered) return;
+    element?.appendTo(rendered);
   };
 
   const text = (str?: string | number | boolean): string | undefined => {
@@ -86,47 +87,54 @@ export const createElement = <P extends object, C extends Vespene.Node>(
     cleanup,
     on,
   };
-  const flattenedChildren = flatten(children);
-  if (isFunction(component)) {
-    element = component(props, flattenedChildren, hooks)?.element;
-  } else {
-    const renderedChildren: Array<JQuery<HTMLElement> | string> = compact(
-      flattenedChildren.map((child) =>
-        isString(child) ? child : child?.element
-      )
+
+  const create = (): JQuery<HTMLElement> | undefined => {
+    listeners = {};
+    const flattenedChildren = flatten(children);
+    if (isFunction(component)) {
+      element = component(props, flattenedChildren, hooks)?.render();
+    } else {
+      const renderedChildren: Array<JQuery<HTMLElement> | string> = compact(
+        flattenedChildren.map((child) =>
+          isString(child) ? child : child?.render()
+        )
+      );
+      element = $(`<${component}></${component}>`);
+      element.append(...renderedChildren);
+    }
+
+    const [attributes, handlers] = partition(
+      ([property]) => !property.startsWith("on"),
+      entries(props)
     );
 
-    console.log("REND", children, renderedChildren);
-    element = $(`<${component}></${component}>`);
-    element.append(...renderedChildren);
-  }
+    handlers.forEach(([property, handler]) =>
+      element?.on(property.substring(2).toLowerCase(), handler)
+    );
 
-  console.log("ELEM", element);
+    attributes.forEach(([property, value]) => {
+      switch (property) {
+        case "className":
+          element?.attr("class", value);
+        default:
+          element?.attr(property, value);
+      }
+    });
 
-  const [attributes, handlers] = partition(
-    ([property]) => !property.startsWith("on"),
-    entries(props)
-  );
+    entries(listeners).forEach(([event, handlers]) =>
+      bindEventHandlers(event, handlers)
+    );
 
-  handlers.forEach(([property, handler]) =>
-    element?.on(property.substring(2).toLowerCase(), handler)
-  );
+    return element;
+  };
 
-  attributes.forEach(([property, value]) => {
-    switch (property) {
-      case "className":
-        element?.attr("class", value);
-      default:
-        element?.attr(property, value);
-    }
-  });
-
-  entries(listeners).forEach(([event, handlers]) =>
-    bindEventHandlers(event, handlers)
-  );
+  const render = (): JQuery<HTMLElement> | undefined => {
+    element = create();
+    return element;
+  };
 
   return {
-    element,
+    render,
     props,
     remove,
     append,

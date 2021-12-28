@@ -1,6 +1,6 @@
 namespace Vespene {
   export interface Element<P extends object = {}> {
-    element: JQuery<HTMLElement> | undefined;
+    render: () => JQuery<HTMLElement> | undefined;
     props?: P;
     remove: () => void;
     append: (elem: JSX.Element) => void;
@@ -11,7 +11,7 @@ namespace Vespene {
     on: (event: string, handler: () => void) => void;
   }
 
-  export type Node = Element | string | null;
+  export type Node = Element | string | null | undefined;
 }
 
 namespace JSX {
