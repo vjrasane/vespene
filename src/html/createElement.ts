@@ -31,18 +31,9 @@ export const createElement = <P extends object, C extends Vespene.Node>(
   ...children: Array<C | Array<C>>
 ): JSX.Element => {
   let element: JQuery<HTMLElement> | undefined;
-  let listeners: Record<string, Array<() => void>> = {};
-
-  const bindEventHandlers = (event: string, handlers: Array<() => void>) => {
-    element?.on(event, () => handlers.forEach((handler) => handler()));
-  };
 
   const on = (event: string, handler: () => void) => {
-    if (!(event in listeners)) {
-      listeners[event] = [];
-      bindEventHandlers(event, listeners[event]);
-    }
-    listeners[event].push(handler);
+    element?.on(event, handler);
   };
 
   const cleanup = (handler: () => void): void => {
@@ -89,10 +80,11 @@ export const createElement = <P extends object, C extends Vespene.Node>(
   };
 
   const create = (): JQuery<HTMLElement> | undefined => {
-    listeners = {};
     const flattenedChildren = flatten(children);
     if (isFunction(component)) {
-      element = component(props, flattenedChildren, hooks)?.render();
+      element = $(`<vspn></vspn>`);
+      const rendered = component(props, flattenedChildren, hooks)?.render();
+      if (rendered) element.append(rendered);
     } else {
       const renderedChildren: Array<JQuery<HTMLElement> | string> = compact(
         flattenedChildren.map((child) =>
@@ -120,10 +112,6 @@ export const createElement = <P extends object, C extends Vespene.Node>(
           element?.attr(property, value);
       }
     });
-
-    entries(listeners).forEach(([event, handlers]) =>
-      bindEventHandlers(event, handlers)
-    );
 
     return element;
   };

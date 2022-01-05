@@ -19,9 +19,7 @@ const Clock: html.FunctionComponent = (
     1
   );
 
-  cleanup(() => {
-    clearInterval(interval);
-  });
+  cleanup(() => clearInterval(interval));
 
   return element;
 };
@@ -33,7 +31,12 @@ const r = (
     </Route>
     <Route route="/clock">
       <span>
-        {times(() => <Clock />, 200)}
+        {times(
+          () => (
+            <Clock />
+          ),
+          200
+        )}
       </span>
     </Route>
     <Route route="/bbb">
