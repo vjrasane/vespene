@@ -29,15 +29,19 @@ const Clock: html.FunctionComponent = (
 const r = (
   <Router>
     <Route route="/">
+
+    <asd id="asd">ASD</asd>
       <span>ROOT</span>
     </Route>
     <Route route="/clock">
+
       <span>
         {times(() => <Clock />, 200)}
       </span>
     </Route>
     <Route route="/bbb">
       <span>BBB</span>
+
     </Route>
   </Router>
 );
@@ -45,7 +49,7 @@ html.render(document.body, r);
 
 let clock = true;
 
-setInterval(() => {
-  window.history.pushState({}, "", clock ? "/clock" : "/");
-  clock = !clock;
-}, 2000);
+// setInterval(() => {
+//   window.history.pushState({}, "", clock ? "/clock" : "/");
+//   clock = !clock;
+// }, 2000);

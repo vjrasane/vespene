@@ -3,9 +3,9 @@ namespace Vespene {
     render: () => JQuery<HTMLElement> | undefined;
     props?: P;
     remove: () => void;
-    append: (elem: JSX.Element) => void;
-    appendTo: (elem: JSX.Element) => void;
-    replace: (elem: JSX.Element) => void;
+    append: (elem: Element) => void;
+    appendTo: (elem: Element) => void;
+    replace: (elem: Element) => void;
     text: (str?: string | number | boolean) => string | undefined;
     cleanup: (handler: () => void) => void;
     on: (event: string, handler: () => void) => void;
@@ -26,5 +26,6 @@ namespace JSX {
     div: {} & CommonProps;
     span: {} & CommonProps;
     button: { onClick: () => void } & CommonProps;
+    [key: string]: CommonProps;
   }
 }

@@ -12,8 +12,8 @@ type HTMLElementTag = keyof HTMLElementTagNameMap;
 
 type Hooks = {
   remove: () => void;
-  append: (elem: JSX.Element) => void;
-  appendTo: (elem: JSX.Element) => void;
+  append: (elem: Vespene.Element) => void;
+  appendTo: (elem: Vespene.Element) => void;
   replace: (elem: Vespene.Element) => void;
   text: (str?: string | number | boolean) => string | undefined;
   cleanup: (handler: () => void) => void;
@@ -23,14 +23,14 @@ type Hooks = {
 export type FunctionComponent<
   P extends object = {},
   C extends Vespene.Node = Vespene.Node
-> = (props: P, children: Array<C>, hooks: Hooks) => JSX.Element | null;
+> = (props: P, children: Array<C>, hooks: Hooks) => Vespene.Element | null;
 
 export const createElement = <P extends object, C extends Vespene.Node>(
   component: FunctionComponent<P, C> | HTMLElementTag,
   props: P,
   ...children: Array<C | Array<C>>
-): JSX.Element => {
-  let element: JQuery<HTMLElement> | undefined;
+): Vespene.Element => {
+  let element: JQuery<HTMLElement> | Vespene.Element | undefined | null;
   let listeners: Record<string, Array<() => void>> = {};
 
   const bindEventHandlers = (event: string, handlers: Array<() => void>) => {
@@ -92,7 +92,7 @@ export const createElement = <P extends object, C extends Vespene.Node>(
     listeners = {};
     const flattenedChildren = flatten(children);
     if (isFunction(component)) {
-      element = component(props, flattenedChildren, hooks)?.render();
+      element = component(props, flattenedChildren, hooks);
     } else {
       const renderedChildren: Array<JQuery<HTMLElement> | string> = compact(
         flattenedChildren.map((child) =>
