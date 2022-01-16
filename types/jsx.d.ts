@@ -1,26 +1,13 @@
-namespace Vespene {
-  export interface Element<P extends object = {}> {
-    render: () => JQuery<HTMLElement> | undefined;
-    props?: P;
-    remove: () => void;
-    append: (elem: JSX.Element) => void;
-    appendTo: (elem: JSX.Element) => void;
-    replace: (elem: JSX.Element) => void;
-    text: (str?: string | number | boolean) => string | undefined;
-    cleanup: (handler: () => void) => void;
-    on: (event: string, handler: () => void) => void;
-  }
 
-  export type Node = Element | string | null | undefined;
-}
 
 namespace JSX {
-  export type Element = Vespene.Element;
+  export type Element = import("../src/html/vespene").default.Element;
+  interface ElementChildrenAttribute { children: import("../src/html/vespene").default.Children; }
 
   type CommonProps = {
     id?: string;
     className?: string;
-  };
+  } & ElementChildrenAttribute;
 
   export interface IntrinsicElements {
     div: {} & CommonProps;
