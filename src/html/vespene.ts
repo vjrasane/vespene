@@ -1,6 +1,7 @@
 
 
-import { Maybe } from "./maybe";
+
+import { compact, DeepArray, flatten, Maybe } from "./utils";
 
 
 namespace Vespene {
@@ -14,23 +15,11 @@ namespace Vespene {
 
 	export type HTMLElementTag = keyof HTMLElementTagNameMap;
 
-	type DeepArray<T> = (T | DeepArray<T>)[];
-
 	export type Children<C extends Node = Node> = C | DeepArray<C> | undefined
 
 	export type WithChildren<P extends object, C extends Node = Node> = {
 		children?: Children<C>
 	} & P;
-
-	const flatten = <T>(arr: DeepArray<T>): Array<T> => {
-		return arr.flatMap(
-			(elem) => Array.isArray(elem) ? flatten(elem) : elem
-		)
-	}
-
-	const compact = <T>(arr: Array<Maybe<T>>): Array<T> => {
-		return arr.filter((elem): elem is T => elem != null);
-	}
 
 	export abstract class Element<
 		C extends Node = Node
@@ -48,13 +37,13 @@ namespace Vespene {
 		abstract getElement: () => Maybe<HTMLElement>;
 		protected abstract clearElement: () => void;
 
-		protected removeChild = (node: Node): void => {
+		protected removeChild = (node: Element): void => {
 			const index = this.children.findIndex((child) => child === node);
 			if (index < 0) return;
 			this.children.splice(index, 1);
 		};
 
-		protected replaceChild = (node: Node, replacer: Node): void => {
+		protected replaceChild = (node: Element, replacer: Node): void => {
 			const index = this.children.findIndex((child) => child === node);
 			if (index < 0) return;
 			this.children.splice(index, 1, replacer);
@@ -69,7 +58,8 @@ namespace Vespene {
 		protected runCleanup = (): void => {
 			this.cleanupHandlers.forEach((handler) => handler());
 			this.children.forEach(
-				(child) => child && typeof child !== "string" && child.runCleanup()
+				(child) =>
+					child && typeof child !== "string" && child.runCleanup()
 			)
 			this.clearElement();
 		}
@@ -79,32 +69,38 @@ namespace Vespene {
 		};
 
 		remove = (): void => {
-			this.getElement()?.remove();
 			this.parent?.removeChild(this);
+			const element = this.getElement();
+			if (!element) return;
+			element.remove();
 			this.runCleanup();
 		};
 
 		replace = <N extends Node>(node: N): N => {
+			this.parent?.replaceChild(this, node);
+			const element = this.getElement();
+			if (!element) return node;
 			const rendered = typeof node === "string"
 				? node
 				: node?.render(this, false);
 			if (!rendered) {
 				this.remove();
-			} else {
-				this.getElement()?.replaceWith(rendered);
-				this.parent?.replaceChild(this, node);
-				this.runCleanup();
+				return node;
 			}
+			element.replaceWith(rendered);
+			this.runCleanup();
 			return node;
 		};
 
 		append = <N extends Node>(node: N): N => {
 			this.children.push(node);
+			const element = this.getElement();
+			if (!element) return node;
 			const rendered = typeof node === "string"
 				? node
 				: node?.render(this, false);
 			if (!rendered) return node;
-			this.getElement()?.append(rendered);
+			element?.append(rendered);
 			return node;
 		}
 
@@ -112,9 +108,11 @@ namespace Vespene {
 			this.parent?.removeChild(this);
 			this.parent = parent;
 			this.parent.addChild(this);
+			const element = this.parent.getElement();
+			if (!element) return this;
 			const rendered = this.render(parent, false);
 			if (!rendered) return this;
-			this.parent?.getElement()?.append(rendered);
+			element.append(rendered);
 			return this;
 		}
 	}
