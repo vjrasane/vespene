@@ -1,21 +1,22 @@
 
-import { Maybe, Node } from "./types";
+import { FunctionComponent } from ".";
+import { Hooks, Maybe, Node, PropsWithChildren } from "./types";
+import { compact, isEventHandler } from "./utils";
 
-export default abstract class Element<
-	P extends object = {},
-	T = unknown,
-	E = unknown,
-	> {
-	protected element: Maybe<E>;
+export default class Element<P extends object = any> {
+	protected element: Maybe<Element | HTMLElement>;
 	protected children: Array<Node>;
 	protected parent: Maybe<Element>;
 
+	readonly type: string | FunctionComponent<P>;
 	readonly props: P;
-	readonly type: T;
 
 	protected cleanupHandlers: Array<() => void> = [];
 
-	constructor(type: T, props: P, children: Array<Node>) {
+	constructor(
+		type: string | FunctionComponent<P>,
+		props: P,
+		children: Array<Node>) {
 		this.props = props;
 		this.type = type;
 		this.children = children;
@@ -25,8 +26,51 @@ export default abstract class Element<
 		});
 	}
 
-	abstract render: (force?: boolean) => Maybe<HTMLElement>;
-	abstract getElement: () => Maybe<HTMLElement>;
+	get hooks(): Hooks {
+		return {
+			replace: this.replace
+		}
+	}
+
+	private bindAttributes = (element: HTMLElement): void => {
+		Object.entries(this.props).filter(
+			([key, value]) => !isEventHandler(key, value)
+		).forEach(([key, value]) => element.setAttribute(key, value));
+	}
+
+	private bindEventListeners = (element: HTMLElement): void => {
+		Object.entries(this.props).filter(
+			([key, handler]) => isEventHandler(key, handler)
+		).forEach(
+			([key, handler]) => {
+				const event = key.substring(2).toLowerCase();
+				element.addEventListener(event, handler);
+			}
+		);
+	}
+
+	private renderActual = (tag: string, force?: boolean): Maybe<HTMLElement> => {
+		this.element = document.createElement(tag);
+		const children = compact(this.children.map(
+			child => child instanceof Element
+				? child?.render(force)
+				: child
+		));
+		this.element?.append(...(children as Array<string | HTMLElement>));
+		this.bindAttributes(this.element);
+		this.bindEventListeners(this.element);
+		return this.element;
+	}
+
+	private renderFunction = (func: FunctionComponent<P>, force?: boolean): Maybe<HTMLElement> => {
+		const props: PropsWithChildren<P> = { ...this.props, children: this.children };
+		this.element = func(props, this.hooks);
+		return this.element?.render(force);
+	}
+
+	protected getElement = (): Maybe<HTMLElement> => this.element instanceof Element
+		? this.element.getElement()
+		: this.element;
 
 	protected removeChild = (node: Element): void => {
 		const index = this.children.findIndex(
@@ -117,4 +161,16 @@ export default abstract class Element<
 		element.append(rendered);
 		return this;
 	}
+
+	render = (force?: boolean): Maybe<HTMLElement> => {
+		if (this.element && !force) return this.getElement();
+		switch (typeof this.type) {
+			case "string":
+				return this.renderActual(this.type, force);
+			case "function":
+				return this.renderFunction(this.type, force);
+			default:
+				return null;
+		}
+	};
 }

@@ -16,7 +16,7 @@ export const Route: V.FunctionComponent<RouteProps> = ({ children, route }) => {
 const Router: V.FunctionComponent<{}> = ({ children }, { replace }) => {
   const selectRoute = (route: string) => {
     return V.Children.toArray(children).find(
-      (child): child is Element<RouteProps, typeof Route> => {
+      (child): child is Element<RouteProps> => {
         if (!(child instanceof Element)) return false;
         if (child.type !== Route) return false;
         const props = child.props as RouteProps;
