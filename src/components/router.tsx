@@ -1,5 +1,5 @@
-import V, { Element } from "../vespene";
-import "../window";
+import V, { Element } from "..";
+import "../modifications/window";
 
 type RouteProps = {
   route: string

@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`render renders function component 1`] = `
+<body>
+  <div>
+    Function
+  </div>
+</body>
+`;
+
+exports[`render renders function component with children 1`] = `
+<body>
+  <div>
+    <span>
+      Function
+    </span>
+    <span>
+      Children
+    </span>
+  </div>
+</body>
+`;
+
+exports[`render renders hello world 1`] = `
+<body>
+  <div>
+    HELLO WORLD!
+  </div>
+</body>
+`;

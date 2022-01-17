@@ -65,6 +65,10 @@ export default abstract class Element<
 		this.cleanupHandlers.push(handler);
 	};
 
+	on = (event: string, handler: () => void) => {
+		this.getElement()?.addEventListener(event, handler);
+	}
+
 	remove = (): void => {
 		this.parent?.removeChild(this);
 		this.parent = undefined;
