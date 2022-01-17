@@ -1,5 +1,6 @@
 import EventEmitter from "events";
-import * as html from "../html";
+// import * as html from "../html";
+import V from "../html/vespene";
 import "../window";
 
 type RouteProps = {
@@ -10,20 +11,20 @@ export const setPath = (path: string) => {
   window.history.pushState({}, "", path);
 }
 
-export const Route: html.FunctionComponent<RouteProps> = (props, children) => {
-  return <div id={props.route}>{children}</div>;
+export const Route: V.FunctionComponent<RouteProps> = ({ children, route }) => {
+  return <div id={route}>{children}</div>;
 }
 
-const Router: html.FunctionComponent<{}, Vespene.Element<RouteProps>> = (props, children, { replace }) => {
+const Router: V.FunctionComponent<{ children: Array<V.Element<RouteProps>> }> = ({ children }) => {
   const selectRoute = (route: string) => {
-    return children.find(
+    return children?.find(
       (child) => child.props?.route === route
     )
   }
 
   window.addEventListener("pushState", () => {
     const route = selectRoute(window.location.pathname);
-    if (route) replace(route);
+    // if (route) replace(route);
   })
 
   return selectRoute(window.location.pathname) ?? null;
