@@ -1,15 +1,15 @@
 
 import { FunctionComponent } from ".";
 import { Hooks, Maybe, Node, PropsWithChildren } from "./types";
-import { compact, isEventHandler } from "./utils";
+import { compact, isEventHandler, toCssStyle } from "./utils";
 
 export default class Element<P extends object = any> {
 	protected element: Maybe<Element | HTMLElement>;
 	protected children: Array<Node>;
 	protected parent: Maybe<Element>;
 
-	readonly type: string | FunctionComponent<P>;
-	readonly props: P;
+	private _type: string | FunctionComponent<P>;
+	private _props: P;
 
 	protected cleanupHandlers: Array<() => void> = [];
 
@@ -17,8 +17,8 @@ export default class Element<P extends object = any> {
 		type: string | FunctionComponent<P>,
 		props: P,
 		children: Array<Node>) {
-		this.props = props;
-		this.type = type;
+		this._props = props;
+		this._type = type;
 		this.children = children;
 		this.children.forEach((child) => {
 			if (!(child instanceof Element)) return;
@@ -32,10 +32,35 @@ export default class Element<P extends object = any> {
 		}
 	}
 
-	private bindAttributes = (element: HTMLElement): void => {
+	get props(): Readonly<P> {
+		return this._props;
+	}
+
+	get type(): string | FunctionComponent<P> {
+		return this._type;
+	}
+
+	private isParent = (child: Element): boolean => {
+		if (child === this) return true;
+		if (!child.parent) return false;
+		return this.isParent(child.parent);
+	}
+
+	private bindAttribute = (key: string, value: unknown) => {
+		switch (key) {
+			case "style":
+				this.setStyle(value as Record<string, string | number>);
+				break;
+			default:
+				this.setAttribute(key, value as string | number);
+				break;
+		}
+	}
+
+	private bindAttributes = (): void => {
 		Object.entries(this.props).filter(
 			([key, value]) => !isEventHandler(key, value)
-		).forEach(([key, value]) => element.setAttribute(key, value));
+		).forEach(([key, value]) => this.bindAttribute(key, value));
 	}
 
 	private bindEventListeners = (element: HTMLElement): void => {
@@ -44,7 +69,7 @@ export default class Element<P extends object = any> {
 		).forEach(
 			([key, handler]) => {
 				const event = key.substring(2).toLowerCase();
-				element.addEventListener(event, handler);
+				element.addEventListener(event, handler as EventListener);
 			}
 		);
 	}
@@ -57,7 +82,7 @@ export default class Element<P extends object = any> {
 				: child
 		));
 		this.element?.append(...(children as Array<string | HTMLElement>));
-		this.bindAttributes(this.element);
+		this.bindAttributes();
 		this.bindEventListeners(this.element);
 		return this.element;
 	}
@@ -95,31 +120,39 @@ export default class Element<P extends object = any> {
 		this.children.push(node);
 	}
 
-	protected runCleanup = (): void => {
+	private runCleanup = (): void => {
 		this.cleanupHandlers.forEach((handler) => handler());
 		this.cleanupHandlers = [];
+		this.element = undefined;
 		this.children.forEach(
 			(child) =>
 				child instanceof Element && child.runCleanup()
 		)
-		this.element = undefined;
+	}
+
+	private unmount = (): void => {
+		const element = this.getElement();
+		if (!element) return;
+		element.remove();
+		this.runCleanup();
+	}
+
+	setStyle = (style: Record<string, string | number>) => {
+		this.setAttribute("style", toCssStyle(style))
+	}
+
+	setAttribute = (key: string, value: string | number) => {
+		this.getElement()?.setAttribute(key, `${value}`);
 	}
 
 	cleanup = (handler: () => void): void => {
 		this.cleanupHandlers.push(handler);
 	};
 
-	on = (event: string, handler: () => void) => {
-		this.getElement()?.addEventListener(event, handler);
-	}
-
 	remove = (): void => {
 		this.parent?.removeChild(this);
 		this.parent = undefined;
-		const element = this.getElement();
-		if (!element) return;
-		element.remove();
-		this.runCleanup();
+		this.unmount();
 	};
 
 	replace = <N extends Node>(node: N): N => {
@@ -137,13 +170,21 @@ export default class Element<P extends object = any> {
 		return node;
 	};
 
+
+
 	append = <N extends Node>(node: N): N => {
-		this.children.push(node);
 		if (node instanceof Element) {
+			if (node.isParent(this))
+				throw new Error("The operation would yield an incorrect node tree.");
+			node.parent?.removeChild(node);
 			node.parent = this;
 		}
+		this.children.push(node);
 		const element = this.getElement();
-		if (!element) return node;
+		if (!element) {
+			if (node instanceof Element) node.unmount();
+			return node
+		};
 		const rendered = node instanceof Element ? node?.render(false) : node;
 		if (!rendered) return node;
 		element?.append(rendered as string | HTMLElement);
@@ -151,15 +192,16 @@ export default class Element<P extends object = any> {
 	}
 
 	appendTo = (parent: Element): Element => {
-		this.parent?.removeChild(this);
-		this.parent = parent;
-		this.parent.addChild(this);
-		const element = this.parent.getElement();
-		if (!element) return this;
-		const rendered = this.render(false);
-		if (!rendered) return this;
-		element.append(rendered);
-		return this;
+		return parent.append(this);
+		// this.parent?.removeChild(this);
+		// this.parent = parent;
+		// this.parent.addChild(this);
+		// const element = this.parent.getElement();
+		// if (!element) return this;
+		// const rendered = this.render(false);
+		// if (!rendered) return this;
+		// element.append(rendered);
+		// return this;
 	}
 
 	render = (force?: boolean): Maybe<HTMLElement> => {

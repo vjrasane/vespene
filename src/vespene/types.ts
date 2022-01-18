@@ -15,6 +15,6 @@ export type Hooks = {
 	replace: <N extends Node>(node: N) => N;
 };
 
-export type FunctionComponent<
-	P extends object = {}
-	> = (props: PropsWithChildren<P>, hooks: Hooks) => Element | null;
+export type FunctionComponent<P extends object = {}> = (
+	props: PropsWithChildren<P>, hooks: Hooks
+) => Element | null;
