@@ -3,6 +3,7 @@
     "strict": true,
     "jsx": "react",
     "jsxFactory": "V.createElement",
+    "jsxFragmentFactory": "V.Fragment",
     "moduleResolution": "node",
     "target": "es2017",
     "isolatedModules": true,

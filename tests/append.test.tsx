@@ -1,4 +1,4 @@
-import V, { render } from "../src";
+import V, { FunctionComponent, render } from "../src";
 
 describe("append", () => {
   it("appends unmounted element to mounted element", () => {
@@ -22,13 +22,44 @@ describe("append", () => {
     expect(document.body).toMatchSnapshot();
   });
 
-  it("appends mounted element to unmounted element", () => {
+  it("does not append mounted element to unmounted element", () => {
     const elem1 = <div id="elem1"></div>;
     const elem2 = <div id="elem2"></div>;
     render(document.body, elem1);
     elem2.append(elem1);
-    expect(document.body.childElementCount).toBe(0);
+    expect(document.body.childElementCount).toBe(1);
     render(document.body, elem2);
+    expect(document.body).toMatchSnapshot();
+  });
+
+  it("appends unmounted element to unmounted function element", () => {
+    const Component: FunctionComponent = () => <div id="elem1"></div>;
+    const elem1 = <Component />;
+    const elem2 = <div id="elem2"></div>;
+    elem1.append(elem2);
+    expect(document.body.childElementCount).toBe(0);
+    render(document.body, elem1);
+    expect(document.body).toMatchSnapshot();
+  });
+
+  it("does not append mounted element to unmounted function element", () => {
+    const Component = () => <div id="elem1"></div>;
+    const elem1 = <Component />;
+    const elem2 = <div id="elem2"></div>;
+    render(document.body, elem2);
+    expect(document.body.childElementCount).toBe(1);
+    elem1.append(elem2);
+    render(document.body, elem1);
+    expect(document.body).toMatchSnapshot();
+  });
+
+  it("appends mounted element to mounted function element", () => {
+    const Component = () => <div id="elem1"></div>;
+    const elem1 = <Component />;
+    const elem2 = <div id="elem2"></div>;
+    render(document.body, elem1);
+    expect(document.body.childElementCount).toBe(1);
+    elem1.append(elem2);
     expect(document.body).toMatchSnapshot();
   });
 

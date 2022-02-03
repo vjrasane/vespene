@@ -26,3 +26,12 @@ export const toCssStyle = (style: Record<string, string | number>): string => {
 		([key, value]) => `${toKebabCase(key)}: ${value}`
 	).join("; ")
 }
+
+export const removeBy = <T>(condition: (elem: T) => boolean, array: Array<T>): Array<T> => {
+	const index = array.findIndex(condition);
+	if (index < 0) return array;
+	array.splice(index, 1);
+	return array;
+}
+
+export const asArray = <T, A>(value: T | Array<A>): Array<T> | Array<A> => Array.isArray(value) ? value : [value];

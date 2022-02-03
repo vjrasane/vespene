@@ -1,0 +1,71 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`context passes correct value after appending 1`] = `
+<body>
+  <div>
+    Element
+    <div>
+      context
+    </div>
+  </div>
+</body>
+`;
+
+exports[`context passes correct value after appending to 1`] = `
+<body>
+  <div>
+    Element
+    <div>
+      context
+    </div>
+  </div>
+</body>
+`;
+
+exports[`context passes correct value after replacing 1`] = `
+<body>
+  <div>
+    context
+  </div>
+</body>
+`;
+
+exports[`context passes correct value to child 1`] = `
+<body>
+  <div>
+    context
+  </div>
+</body>
+`;
+
+exports[`context passes correct value to function component 1`] = `
+<body>
+  <div>
+    context
+  </div>
+</body>
+`;
+
+exports[`context passes innermost provider value to child 1`] = `
+<body>
+  <div>
+    third
+  </div>
+</body>
+`;
+
+exports[`context uses default value if context not set 1`] = `
+<body>
+  <div>
+    default
+  </div>
+</body>
+`;
+
+exports[`context uses default value in function component if context not set 1`] = `
+<body>
+  <div>
+    default
+  </div>
+</body>
+`;

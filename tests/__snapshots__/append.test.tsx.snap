@@ -16,13 +16,13 @@ exports[`append appends mounted element to mounted element 1`] = `
 </body>
 `;
 
-exports[`append appends mounted element to unmounted element 1`] = `
+exports[`append appends mounted element to mounted function element 1`] = `
 <body>
   <div
-    id="elem2"
+    id="elem1"
   >
     <div
-      id="elem1"
+      id="elem2"
     />
   </div>
 </body>
@@ -44,11 +44,31 @@ exports[`append appends unmounted element to unmounted element 1`] = `
 <body>
   <div
     id="elem2"
-  >
-    <div
-      id="elem1"
-    />
-  </div>
+  />
+</body>
+`;
+
+exports[`append appends unmounted element to unmounted function element 1`] = `
+<body>
+  <div
+    id="elem1"
+  />
+</body>
+`;
+
+exports[`append does not append mounted element to unmounted element 1`] = `
+<body>
+  <div
+    id="elem2"
+  />
+</body>
+`;
+
+exports[`append does not append mounted element to unmounted function element 1`] = `
+<body>
+  <div
+    id="elem1"
+  />
 </body>
 `;
 

@@ -22,17 +22,17 @@ describe("appendTo", () => {
     expect(document.body).toMatchSnapshot();
   });
 
-  it("appends mounted element to unmounted element", () => {
+  it("does not append mounted element to unmounted element", () => {
     const elem1 = <div id="elem1"></div>;
     const elem2 = <div id="elem2"></div>;
     render(document.body, elem1);
     elem1.appendTo(elem2);
-    expect(document.body.childElementCount).toBe(0);
+    expect(document.body.childElementCount).toBe(1);
     render(document.body, elem2);
     expect(document.body).toMatchSnapshot();
   });
 
-  it("appends unmounted element to unmounted element", () => {
+  it("does not append unmounted element to unmounted element", () => {
     const elem1 = <div id="elem1"></div>;
     const elem2 = <div id="elem2"></div>;
     elem1.appendTo(elem2);

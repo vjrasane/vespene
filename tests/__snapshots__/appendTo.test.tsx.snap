@@ -16,18 +16,6 @@ exports[`appendTo appends mounted element to mounted element 1`] = `
 </body>
 `;
 
-exports[`appendTo appends mounted element to unmounted element 1`] = `
-<body>
-  <div
-    id="elem2"
-  >
-    <div
-      id="elem1"
-    />
-  </div>
-</body>
-`;
-
 exports[`appendTo appends unmounted element to mounted element 1`] = `
 <body>
   <div
@@ -40,15 +28,19 @@ exports[`appendTo appends unmounted element to mounted element 1`] = `
 </body>
 `;
 
-exports[`appendTo appends unmounted element to unmounted element 1`] = `
+exports[`appendTo does not append mounted element to unmounted element 1`] = `
 <body>
   <div
     id="elem2"
-  >
-    <div
-      id="elem1"
-    />
-  </div>
+  />
+</body>
+`;
+
+exports[`appendTo does not append unmounted element to unmounted element 1`] = `
+<body>
+  <div
+    id="elem2"
+  />
 </body>
 `;
 

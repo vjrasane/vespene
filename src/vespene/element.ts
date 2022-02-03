@@ -1,48 +1,67 @@
+import { Context } from "./context";
+import { Fragment, Node, Child, Text, Maybe, PropsWithChildren, FunctionComponent } from "./types";
+import { compact, flatten, isEventHandler, removeBy, toCssStyle } from "./utils";
 
-import { FunctionComponent } from ".";
-import { Hooks, Maybe, Node, PropsWithChildren } from "./types";
-import { compact, isEventHandler, toCssStyle } from "./utils";
+// const renderSuccessors = (successors: HTMLElement | Array<Child>, parent: Element): Array<HTMLElement | Text> => {
+// 	return Array.isArray(successors) 
+// 	? successors.flatMap(
+// 		successor => successor instanceof Element ? successor.render(parent) : successor) 
+// 	: [successors];
+// }
 
-export default class Element<P extends object = any> {
-	protected element: Maybe<Element | HTMLElement>;
-	protected children: Array<Node>;
-	protected parent: Maybe<Element>;
+export default class Element<P = any, 
+	T extends string | typeof Fragment | FunctionComponent<P> = string | typeof Fragment | FunctionComponent<P>> {
+	private readonly instructions: {
+		readonly type: T;
+		readonly props: P;
+		readonly children: Node;
+	};
 
-	private _type: string | FunctionComponent<P>;
-	private _props: P;
+	// protected elements: Maybe<Array<Element | Text | HTMLElement>>;
+	protected parent: Maybe<Element | HTMLElement>;
 
 	protected cleanupHandlers: Array<() => void> = [];
 
+	// protected element: Maybe<Element | Text | HTMLElement | null>;
+
+	// protected successors: Maybe<HTMLElement | Element | Array<Child> | null>;
+
+	protected context: Record<symbol, any> = {};
+
+	protected element: Maybe<HTMLElement | null>;
+
+	protected children: Maybe<Array<Child>>;
+
 	constructor(
-		type: string | FunctionComponent<P>,
+		type: T,
 		props: P,
-		children: Array<Node>) {
-		this._props = props;
-		this._type = type;
-		this.children = children;
-		this.children.forEach((child) => {
-			if (!(child instanceof Element)) return;
-			child.parent = this;
-		});
+		children: Node) {
+			this.instructions = {
+				type, 
+				props,
+				children
+			};
 	}
 
-	get hooks(): Hooks {
-		return {
-			replace: this.replace
-		}
+	get type() {
+		return this.instructions.type;
 	}
 
 	get props(): Readonly<P> {
-		return this._props;
+		return this.instructions.props;
 	}
 
-	get type(): string | FunctionComponent<P> {
-		return this._type;
-	}
+	// private getContainer = (parent: Maybe<Element | HTMLElement>): Maybe<HTMLElement> => {
+	// 	if (!parent) return;
+	// 	if (parent instanceof HTMLElement) return parent;
+	// 	if (parent.element instanceof HTMLElement) return parent.element;
+	// 	return this.getContainer(parent.parent);
+	// }
 
 	private isParent = (child: Element): boolean => {
 		if (child === this) return true;
 		if (!child.parent) return false;
+		if (!(child.parent instanceof Element)) return false;
 		return this.isParent(child.parent);
 	}
 
@@ -74,38 +93,58 @@ export default class Element<P extends object = any> {
 		);
 	}
 
-	private renderActual = (tag: string, force?: boolean): Maybe<HTMLElement> => {
+	private renderChildren = (children: Array<Child>): Array<HTMLElement | string> => {
+		children.forEach((child) => { 
+			if(!(child instanceof Element )) return; 
+			child.parent = this;
+		 });
+		return compact(children.flatMap(
+			(child): Array<HTMLElement | Text | null> => child instanceof Element 
+				? child?.render(this.context) : [child]
+		)).map(child => child instanceof HTMLElement ? child : String(child));
+	}
+
+	private renderActual = (tag: string): HTMLElement => {
 		this.element = document.createElement(tag);
-		const children = compact(this.children.map(
-			child => child instanceof Element
-				? child?.render(force)
-				: child
-		));
-		this.element?.append(...(children as Array<string | HTMLElement>));
+		this.children = flatten([this.instructions.children]) as Array<Child>;
+		this.element.append(...this.renderChildren(this.children));
 		this.bindAttributes();
 		this.bindEventListeners(this.element);
 		return this.element;
 	}
 
-	private renderFunction = (func: FunctionComponent<P>, force?: boolean): Maybe<HTMLElement> => {
-		const props: PropsWithChildren<P> = { ...this.props, children: this.children };
-		this.element = func(props, this.hooks);
-		return this.element?.render(force);
+	private renderFunction = (func: FunctionComponent<P>): Array<HTMLElement | string> => {
+		const props: PropsWithChildren<P> = { ...this.props, children: this.instructions.children };
+		const elements = func(props, this);
+		this.children = Array.isArray(elements) ? elements : compact([elements]);
+		return this.renderChildren(this.children);
 	}
 
-	protected getElement = (): Maybe<HTMLElement> => this.element instanceof Element
-		? this.element.getElement()
-		: this.element;
+	protected getSuccessor = (): Maybe<HTMLElement | Element> => {
+		if (this.element instanceof HTMLElement) return this.element;
+		if (this.element === null) return;
+		if (!this.children) return;
+		if (this.children.length !== 1) return;
+		const [element] = this.children;
+		if (element instanceof Element) return element;
+	}
+
+	protected getElement = (): Maybe<HTMLElement> => {
+		const successor = this.getSuccessor();
+		if (successor instanceof HTMLElement) return successor;
+		if (successor instanceof Element) return successor.getElement();
+	}
 
 	protected removeChild = (node: Element): void => {
-		const index = this.children.findIndex(
-			(child) => child instanceof Element && child === node
+		if (!this.children) return;
+		this.children = removeBy(
+			(child) => child instanceof Element && child === node,
+			this.children
 		);
-		if (index < 0) return;
-		this.children.splice(index, 1);
 	};
 
-	protected replaceChild = (node: Element, replacer: Node): void => {
+	protected replaceChild = (node: Element, replacer: Child): void => {
+		if (!this.children) return;
 		const index = this.children.findIndex(
 			(child) => child instanceof Element && child === node
 		);
@@ -113,7 +152,8 @@ export default class Element<P extends object = any> {
 		this.children.splice(index, 1, replacer);
 	};
 
-	protected addChild = (node: Node): void => {
+	protected addChild = (node: Child): void => {
+		if (!this.children) return;
 		const index = this.children.findIndex(
 			(child) => child instanceof Element && child === node);
 		if (index >= 0) return;
@@ -123,18 +163,10 @@ export default class Element<P extends object = any> {
 	private runCleanup = (): void => {
 		this.cleanupHandlers.forEach((handler) => handler());
 		this.cleanupHandlers = [];
-		this.element = undefined;
-		this.children.forEach(
-			(child) =>
-				child instanceof Element && child.runCleanup()
-		)
-	}
-
-	private unmount = (): void => {
-		const element = this.getElement();
-		if (!element) return;
-		element.remove();
-		this.runCleanup();
+		this.element = null;
+		this.children?.forEach(
+			child => child instanceof Element && child.runCleanup());
+		this.children = [];
 	}
 
 	setStyle = (style: Record<string, string | number>) => {
@@ -150,69 +182,84 @@ export default class Element<P extends object = any> {
 	};
 
 	remove = (): void => {
-		this.parent?.removeChild(this);
-		this.parent = undefined;
-		this.unmount();
-	};
-
-	replace = <N extends Node>(node: N): N => {
-		this.parent?.replaceChild(this, node);
-		this.parent = undefined;
 		const element = this.getElement();
-		if (!element) return node;
-		const rendered = node instanceof Element ? node?.render(false) : node;
-		if (!rendered) {
-			this.remove();
-			return node;
-		}
-		element.replaceWith(rendered as string | HTMLElement);
+		if (!element) return;
+		if (this.parent instanceof Element) this.parent.removeChild(this);
+		this.parent = undefined;
 		this.runCleanup();
-		return node;
 	};
 
+	private replaceWithElement = (replacer: Element): void => {
+		this.element = replacer.element;
+		this.children = replacer.children;
+		this.cleanupHandlers = replacer.cleanupHandlers;
+	}
 
-
-	append = <N extends Node>(node: N): N => {
-		if (node instanceof Element) {
-			if (node.isParent(this))
-				throw new Error("The operation would yield an incorrect node tree.");
-			node.parent?.removeChild(node);
-			node.parent = this;
-		}
-		this.children.push(node);
+	replace = (node: Element): void => {
 		const element = this.getElement();
-		if (!element) {
-			if (node instanceof Element) node.unmount();
-			return node
-		};
-		const rendered = node instanceof Element ? node?.render(false) : node;
-		if (!rendered) return node;
-		element?.append(rendered as string | HTMLElement);
-		return node;
+		if (!element) return;
+		const replaceable = node.render(this.context);
+		if (!replaceable) return this.remove();
+		element.replaceWith(...replaceable);
+		this.runCleanup();
+		this.replaceWithElement(node);
+	};
+
+	protected moveToParent = (parent: Element): void => {
+		if (parent === this) return;
+		if (this.parent instanceof Element) this.parent?.removeChild(this);
+		parent.addChild(this);
+		this.parent = parent;
 	}
 
-	appendTo = (parent: Element): Element => {
-		return parent.append(this);
-		// this.parent?.removeChild(this);
-		// this.parent = parent;
-		// this.parent.addChild(this);
-		// const element = this.parent.getElement();
-		// if (!element) return this;
-		// const rendered = this.render(false);
-		// if (!rendered) return this;
-		// element.append(rendered);
-		// return this;
+	append = (node: Child): void => {
+		const successor = this.getSuccessor();
+		if (!successor) return;
+		if (successor instanceof Element) return successor.append(node);
+		const appendable = node instanceof Element ? node.render(this.context) : String(node);
+		if (appendable)	successor.append(...appendable);
+		if (node instanceof Element) node.moveToParent(this);
 	}
 
-	render = (force?: boolean): Maybe<HTMLElement> => {
-		if (this.element && !force) return this.getElement();
-		switch (typeof this.type) {
-			case "string":
-				return this.renderActual(this.type, force);
-			case "function":
-				return this.renderFunction(this.type, force);
+	appendTo = (parent: Element | HTMLElement): void => {
+		if (parent instanceof Element) return parent.append(this);
+		const appendable = this.render(this.context);
+		if (appendable) parent.append(...appendable);
+		this.parent = parent;
+	}
+
+	setContext = <T>(context: Context<T>, value: T): void => {
+		this.context = { ...this.context, [context.id]: value };
+	}
+
+	getContext = <T>(context: Context<T>): T => {
+		if (!this.context || !(context.id in this.context)) return context.defaultValue;
+		return this.context[context.id];
+	}
+
+	private render = (context: Record<symbol, any>): Array<HTMLElement | string> => {
+		switch (this.children) {
+			case undefined: {
+				this.context = { ...context };
+				switch (typeof this.type) {
+					case "string":
+						return [this.renderActual(this.type)];
+					case "function":
+						return this.renderFunction(this.type);
+					case "symbol":
+						this.children = flatten([this.instructions.children]) as Array<Child>;
+						return this.renderChildren(this.children);
+				}
+			}
 			default:
-				return null;
-		}
+				switch (this.element) {
+					case undefined:
+						return this.renderChildren(this.children);
+					case null:
+						return [];
+					default:
+						return [this.element];
+				}
+		}	
 	};
 }

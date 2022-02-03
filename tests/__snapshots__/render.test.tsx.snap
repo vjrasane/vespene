@@ -1,5 +1,41 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`render does not call render multiple times for mounted component 1`] = `
+<body>
+  <div>
+    Function
+  </div>
+</body>
+`;
+
+exports[`render renders array 1`] = `
+<body>
+  <div>
+    <div>
+      Div
+    </div>
+    Text
+    <span>
+      Span
+    </span>
+    <div>
+      Div
+    </div>
+    Text
+    <span>
+      Span
+    </span>
+    <div>
+      Div
+    </div>
+    Text
+    <span>
+      Span
+    </span>
+  </div>
+</body>
+`;
+
 exports[`render renders component with attributes 1`] = `
 <body>
   <div
@@ -9,6 +45,18 @@ exports[`render renders component with attributes 1`] = `
   >
     Attributes
   </div>
+</body>
+`;
+
+exports[`render renders fragment 1`] = `
+<body>
+  <div>
+    Div
+  </div>
+  Text
+  <span>
+    Span
+  </span>
 </body>
 `;
 

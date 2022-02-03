@@ -1,20 +1,21 @@
 
 import Element from "./element";
 
-export type Maybe<T> = T | undefined | null;
+export const Fragment: unique symbol = Symbol();
+
+export type Maybe<T> = T | undefined;
 
 export type DeepArray<T> = (T | DeepArray<T>)[];
 
-
-export type PropsWithChildren<P> = P & { children?: Node | undefined };
-export type Text = string | number | boolean;
+interface NodeArray extends Array<Node> {};
+export type Text = string | number;
 export type Child = Element | Text;
-export type Node = Maybe<{} | Child | Array<Node>>;
+export type Node = Maybe<{} | NodeArray | Child | Array<Node>>;
+export type PropsWithChildren<P> = P & { children?: Node | undefined };
 
-export type Hooks = {
-	replace: <N extends Node>(node: N) => N;
-};
 
-export type FunctionComponent<P extends object = {}> = (
-	props: PropsWithChildren<P>, hooks: Hooks
-) => Element | null;
+export type JSXElementConstructor<P> = ((props: P) => Element<any, any> | null)
+
+export interface FunctionComponent<P = {}> {
+	(props: PropsWithChildren<P>, elem: Element): Element | null;
+}
